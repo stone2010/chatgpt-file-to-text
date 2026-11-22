@@ -230,6 +230,16 @@
     S.layer.appendChild(card);
   }
 
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const chunk = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
   function formatSize(n) {
     if (n < 1024) return `${n} B`;
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -307,7 +317,7 @@
           type: f.type || '',
           size: f.size,
           lastModified: f.lastModified,
-          buffer: await f.arrayBuffer(),
+          data: arrayBufferToBase64(await f.arrayBuffer()),
         });
       }
       const port = getPort();

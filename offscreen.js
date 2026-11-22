@@ -3,6 +3,13 @@
   const port = chrome.runtime.connect({ name: 'offscreen' });
   port.postMessage({ type: 'ready' });
 
+  function base64ToBytes(b64) {
+    const binary = atob(b64 || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
   port.onMessage.addListener(async (msg) => {
     if (!msg || msg.type !== 'process') return;
     const { id, files = [], options = {} } = msg;
@@ -10,7 +17,7 @@
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       try {
-        const file = new File([f.buffer], f.name, {
+        const file = new File([base64ToBytes(f.data)], f.name, {
           type: f.type || 'application/octet-stream',
           lastModified: f.lastModified || Date.now(),
         });

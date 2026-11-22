@@ -224,8 +224,20 @@ const Extractors = (() => {
 
   async function fromImage(file, options, onProgress) {
     const lang = options.ocrLang || 'chi_sim+eng';
-    const result = await Tesseract.recognize(file, lang, {
+    // Tesseract's File/Blob reader is unreliable inside an MV3 offscreen document.
+    // Feed it a data URL instead, which is decoded as raw bytes by the worker.
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('读取图片失败'));
+      reader.readAsDataURL(file);
+    });
+    if (typeof dataUrl !== 'string' || dataUrl.length < 64) {
+      throw new Error(`图片内容无效（大小 ${file.size} 字节）`);
+    }
+    const result = await Tesseract.recognize(dataUrl, lang, {
       workerPath: chrome.runtime.getURL('lib/tesseract/worker.min.js'),
+      workerBlobURL: false,
       corePath: chrome.runtime.getURL('lib/tesseract/'),
       langPath: chrome.runtime.getURL('lib/tessdata/'),
       gzip: true,
